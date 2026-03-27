@@ -22,7 +22,7 @@ def custom_train_test_split(X, y, test_size=0.3, random_state=42):
 
 
 # ========================================================
-# 1. ŁADOWANIE I PREPROCESSING DANYCH
+# 1. ŁADOWANIE I PREPROCESSING DANYCh
 # ========================================================
 
 df = pd.read_csv('credit_risk_dataset.csv')
