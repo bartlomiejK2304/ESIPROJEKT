@@ -1,3 +1,3 @@
-import csv
+import pandas as pd
 
-data = csv.reader("credit_risk_dataset.csv")
+data = pd.read_csv('data.csv')
