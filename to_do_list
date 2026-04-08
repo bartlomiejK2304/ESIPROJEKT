@@ -19,13 +19,17 @@ cb_person_cred_hist_length (długość historii kredytowej (lata))
 - Zmienne kategoryczne rozbijamy na kilka zmiennych 0-1
 
 =====================================
-SZTUCZNE SIECI NEURONOWE
+SZTUCZNE SIECI NEURONOWE (część pierwsza)
 
 Problem regresyjny
 - Ustalenie możliwych do zmiany parametrów
+- przetestowanie różnych konfiguracji
+- zapisanie raportu
 
 Problem klasyfikacyjny
 - Ustalenie możliwych do zmiany parametrów
+- przetestowanie różnych konfiguracji
+- zapisanie raportu
 
 =====================================
-UCZENIE MASZYNOWE
+UCZENIE MASZYNOWE (część druga)
