@@ -1,0 +1,13 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+
+*.ini
+*.cfg
+*.conf
+*.config
+*.env
+*.yaml
+*.yml
