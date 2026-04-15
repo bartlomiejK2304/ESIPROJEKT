@@ -21,7 +21,7 @@ print("=" * 50)
 print("Trwa wczytywanie i przygotowywanie danych...")
 
 # Wczytanie zbioru (upewnij się, że plik csv jest w tym samym folderze co skrypt)
-df = pd.read_csv('credit_risk_dataset.csv')
+df = pd.read_csv('../data/credit_risk_dataset.csv')
 
 # Czyszczenie i transformacja (zgodnie z częścią 1)
 df = df.fillna(df.mean(numeric_only=True))
