@@ -30,11 +30,14 @@ df = df.astype(float)
 # Zmienne docelowe:
 #   - klasyfikacja: loan_status (0/1 - czy pożyczka spłacona)
 #   - regresja:     loan_int_rate (wysokość oprocentowania)
-y_clf = df['loan_status'].values.ravel()
-y_reg = df['loan_int_rate'].values.ravel()
+TARGET_CLF = 'loan_status'
+TARGET_REG = 'loan_int_rate'
 
-X_clf = df.drop(['loan_status'], axis=1).values
-X_reg = df.drop(['loan_int_rate'], axis=1).values
+y_clf = df[TARGET_CLF].values.ravel()
+y_reg = df[TARGET_REG].values.ravel()
+
+X_clf = df.drop([TARGET_CLF], axis=1).values
+X_reg = df.drop([TARGET_REG], axis=1).values
 
 # Podział 70% train / 30% test
 X_train_clf, X_test_clf, y_train_clf, y_test_clf = train_test_split(
@@ -42,14 +45,33 @@ X_train_clf, X_test_clf, y_train_clf, y_test_clf = train_test_split(
 X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
     X_reg, y_reg, test_size=0.3, random_state=42)
 
-# Skalowanie (wymagane dla KNN i SVM – opierają się na odległościach)
+# Skalowanie (tylko kolumny numeryczne – bez 0/1)
+# wykrycie kolumn binarnych (0/1) i numerycznych
+binary_cols = [i for i in range(X_train_clf.shape[1])
+               if np.isin(X_train_clf[:, i], [0, 1]).all()
+               ]
+numeric_cols = [i for i in range(X_train_clf.shape[1])
+                if i not in binary_cols]
+
+# ===== KLASYFIKACJA =====
 scaler_clf = StandardScaler()
-X_train_clf_s = scaler_clf.fit_transform(X_train_clf)
-X_test_clf_s  = scaler_clf.transform(X_test_clf)
+X_train_clf_s = X_train_clf.copy()
+X_test_clf_s  = X_test_clf.copy()
+X_train_clf_s[:, numeric_cols] = scaler_clf.fit_transform(X_train_clf[:, numeric_cols])
+X_test_clf_s[:, numeric_cols]  = scaler_clf.transform(X_test_clf[:, numeric_cols])
+
+# ===== REGRESJA =====
+binary_cols_reg = [i for i in range(X_train_reg.shape[1])
+                   if np.isin(X_train_reg[:, i], [0, 1]).all()
+                   ]
+numeric_cols_reg = [i for i in range(X_train_reg.shape[1])
+                    if i not in binary_cols_reg]
 
 scaler_reg = StandardScaler()
-X_train_reg_s = scaler_reg.fit_transform(X_train_reg)
-X_test_reg_s  = scaler_reg.transform(X_test_reg)
+X_train_reg_s = X_train_reg.copy()
+X_test_reg_s  = X_test_reg.copy()
+X_train_reg_s[:, numeric_cols_reg] = scaler_reg.fit_transform(X_train_reg[:, numeric_cols_reg])
+X_test_reg_s[:, numeric_cols_reg]  = scaler_reg.transform(X_test_reg[:, numeric_cols_reg])
 
 print("Dane przygotowane.")
 print(f"  Rozmiar zbioru uczącego  (clf): {X_train_clf_s.shape}")
