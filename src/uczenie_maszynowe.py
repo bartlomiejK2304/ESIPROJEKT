@@ -37,11 +37,11 @@ y_clf = df[TARGET_CLF].values.ravel()
 y_reg = df[TARGET_REG].values.ravel()
 
 X_clf = df.drop([TARGET_CLF], axis=1).values
-X_reg = df.drop([TARGET_REG], axis=1).values
+X_reg = df.drop([TARGET_REG, TARGET_CLF], axis=1).values
 
 # Podział 70% train / 30% test
 X_train_clf, X_test_clf, y_train_clf, y_test_clf = train_test_split(
-    X_clf, y_clf, test_size=0.3, random_state=42)
+    X_clf, y_clf, test_size=0.3, stratify=y_clf, random_state=42)
 X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
     X_reg, y_reg, test_size=0.3, random_state=42)
 
