@@ -14,7 +14,6 @@ warnings.filterwarnings('ignore')
 print("=" * 60)
 print("===== PROJEKT CZ. 2: UCZENIE MASZYNOWE =====")
 print("=" * 60)
-
 # ============================================================
 # 1. WCZYTANIE I PRZYGOTOWANIE DANYCH
 # ============================================================
@@ -52,31 +51,26 @@ binary_cols = [i for i in range(X_train_clf.shape[1])
                ]
 numeric_cols = [i for i in range(X_train_clf.shape[1])
                 if i not in binary_cols]
-
 # ===== KLASYFIKACJA =====
 scaler_clf = StandardScaler()
 X_train_clf_s = X_train_clf.copy()
 X_test_clf_s  = X_test_clf.copy()
 X_train_clf_s[:, numeric_cols] = scaler_clf.fit_transform(X_train_clf[:, numeric_cols])
 X_test_clf_s[:, numeric_cols]  = scaler_clf.transform(X_test_clf[:, numeric_cols])
-
 # ===== REGRESJA =====
 binary_cols_reg = [i for i in range(X_train_reg.shape[1])
                    if np.isin(X_train_reg[:, i], [0, 1]).all()
                    ]
 numeric_cols_reg = [i for i in range(X_train_reg.shape[1])
                     if i not in binary_cols_reg]
-
 scaler_reg = StandardScaler()
 X_train_reg_s = X_train_reg.copy()
 X_test_reg_s  = X_test_reg.copy()
 X_train_reg_s[:, numeric_cols_reg] = scaler_reg.fit_transform(X_train_reg[:, numeric_cols_reg])
 X_test_reg_s[:, numeric_cols_reg]  = scaler_reg.transform(X_test_reg[:, numeric_cols_reg])
-
 print("Dane przygotowane.")
 print(f"  Rozmiar zbioru uczącego  (clf): {X_train_clf_s.shape}")
 print(f"  Rozmiar zbioru testowego (clf): {X_test_clf_s.shape}")
-
 # ============================================================
 # POMOCNICZA FUNKCJA DO WYŚWIETLANIA WYNIKÓW
 # ============================================================
@@ -84,15 +78,12 @@ def print_header(title):
     print(f"\n{'=' * 60}")
     print(f"  {title}")
     print(f"{'=' * 60}")
-
 def print_param_header(desc):
     print(f"\n--- {desc} ---")
-
 # ============================================================
 # 2. PROBLEM KLASYFIKACYJNY
 # ============================================================
 print_header("PROBLEM KLASYFIKACYJNY  |  Metryka: Accuracy")
-
 # ------------------------------------------------------------------
 # PARAMETR 1: KNN – liczba sąsiadów (n_neighbors)
 # ------------------------------------------------------------------
@@ -142,14 +133,11 @@ for n_est in [10, 50, 100, 200]:
     tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
     te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
     print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
-
 # ============================================================
 # 3. PROBLEM REGRESYJNY
 # ============================================================
-
 print_header("PROBLEM REGRESYJNY  |  Metryka: MSE (błąd średniokwadratowy)")
-
-# ------------------------------------------------------------------
+# -----------------------------------------------------------------
 # PARAMETR 1: KNN – liczba sąsiadów (n_neighbors)
 # ------------------------------------------------------------------
 print_param_header("PARAMETR 1 | KNN – liczba sąsiadów (n_neighbors)")
@@ -161,7 +149,6 @@ for k in [3, 5, 7, 9]:
     tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
     te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
     print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
-
 # ------------------------------------------------------------------
 # PARAMETR 2: SVR – parametr regularyzacji C
 # ------------------------------------------------------------------
@@ -187,7 +174,6 @@ for depth in [3, 5, 10, None]:
     te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
     label = str(depth) if depth is not None else 'None (brak)'
     print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
-
 # ------------------------------------------------------------------
 # PARAMETR 4: Las Losowy – liczba drzew (n_estimators)
 # ------------------------------------------------------------------
@@ -200,8 +186,6 @@ for n_est in [10, 50, 100, 200]:
     tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
     te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
     print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
-
-
 print("\n" + "=" * 60)
 print("Zakończono analizę metod uczenia maszynowego.")
 print("=" * 60)
