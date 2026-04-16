@@ -1,2 +1,3 @@
 import numpy as np
-import neuralNetwork
+from neuralNetwork import NeuralNetwork
+import data_preparation as dp

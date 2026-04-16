@@ -20,7 +20,8 @@ def linear_derivative(x): return np.ones_like(x)
 # Klasa Regresyjnej Sieci neuronowej
 
 class NeuralNetwork:
-    def __init__(self, layers, activation, learning_rate=0.001):
+    def __init__(self, layers: list[int], activation, learning_rate=0.001, multiplier=0.01, task="regression"):
+        self.task = task # przeznaczenie sieci
         self.layers = layers # lista liczby neuronów w każdej warstwie
         self.learning_rate = learning_rate # współczynnik uczenia
 
@@ -29,7 +30,7 @@ class NeuralNetwork:
 
         # inicjalizacja wag
         for i in range(len(layers) - 1): # bo warstwa wyjściowa nie łączy się już z żadną
-            w = np.random.randn(layers[i], layers[i + 1]) * 0.01 # losujemy wagi dla danej warstwy
+            w = np.random.randn(layers[i], layers[i + 1]) * multiplier # losujemy wagi dla danej warstwy
             b = np.zeros((1, layers[i + 1])) # ustawiamy biasy
 
             self.weights.append(w)
@@ -78,7 +79,11 @@ class NeuralNetwork:
 
         # ostatnia warstwa (REGRESJA = liniowa)
         z = self.a[-1] @ self.weights[-1] + self.biases[-1]
-        a = linear(z)
+
+        if self.task == "regression":
+            a = linear(z)
+        elif self.task == "classification":
+            a = sigmoid(z)
 
         self.z.append(z)
         self.a.append(a)
@@ -89,7 +94,19 @@ class NeuralNetwork:
     # Loss MSE - średni błąd kwadratowy
 
     def compute_loss(self, y_pred, y_true):
-        return np.mean((y_pred - y_true) ** 2)
+        if self.task == "regression":
+            # MSE - Mean Squared Error
+            return np.mean((y_pred - y_true) ** 2)
+
+        elif self.task == "classification":
+            # BCE - Binary Cross Entropy
+            epsilon = 1e-15  # zabezpieczenie przed log(0)
+            y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+
+            return -np.mean(
+                y_true * np.log(y_pred) +
+                (1 - y_true) * np.log(1 - y_pred)
+            )
 
     # -------------------------------------------------
     # Propagacja wsteczna
@@ -97,7 +114,10 @@ class NeuralNetwork:
     def backward(self, y_pred, y_true):
         m = y_true.shape[0]
 
-        dz = (y_pred - y_true) / m # gradient błędu w ostatniej warstwie
+        if self.task == "regression":
+            dz = (y_pred - y_true) / m # gradient błędu w ostatniej warstwie
+        elif self.task == "classification":
+            dz = y_pred - y_true
 
         for i in reversed(range(len(self.weights))):
             # gradient funkcji straty względem wag warstwy i
@@ -117,6 +137,7 @@ class NeuralNetwork:
 
     def fit(self, X, y, epochs=1000, min_change=1e-6, target_loss=1e-4):
         prev_loss = float('inf')
+        metric_name = "MSE" if self.task == "regression" else "BCE"
 
         for epoch in range(epochs):
             y_pred = self.forward(X)
@@ -126,15 +147,35 @@ class NeuralNetwork:
 
             # wczesny stop, jeśli zmiana straty jest minimalna
             if abs(prev_loss - loss) < min_change:
-                print(f"Zmiana błędu mniejsza niż wymagana na epoce {epoch}, MSE: {loss}")
+                print(f"Zmiana błędu mniejsza niż wymagana na epoce {epoch}, {metric_name}: {loss}")
                 break
 
             # wczesny stop, jeśli strata spadła poniżej celu
             if loss < target_loss:
-                print(f"Błąd mniejszy od docelowego na epoce {epoch}, MSE: {loss}")
+                print(f"Błąd mniejszy od docelowego na epoce {epoch}, {metric_name}: {loss}")
                 break
 
             if epoch % 100 == 0:
-                print(f"Epoka {epoch}, MSE: {loss}")
+                print(f"Epoka {epoch}, {metric_name}: {loss}")
 
             prev_loss = loss
+
+    # -------------------------------------------------
+    # Predykcja
+
+    def predict(self, X):
+        a = X
+        for i in range(len(self.weights) - 1):
+            z = a @ self.weights[i] + self.biases[i]
+            a = self.activation(z)
+
+        z = a @ self.weights[-1] + self.biases[-1]
+
+        if self.task == "regression":
+            return linear(z)
+        elif self.task == "classification":
+            return sigmoid(z)
+
+    def predict_classes(self, X, threshold=0.5):
+        probs = self.predict(X)
+        return (probs > threshold).astype(int)
