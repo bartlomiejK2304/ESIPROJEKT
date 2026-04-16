@@ -105,24 +105,10 @@ for k in [3, 5, 7, 9]:
     tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
     te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
     print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
-
 # ------------------------------------------------------------------
-# PARAMETR 2: KNN – metryka odległości (metric)
+# PARAMETR 2: SVM – parametr regularyzacji C
 # ------------------------------------------------------------------
-print_param_header("PARAMETR 2 | KNN – metryka odległości (metric)")
-print(f"  {'metric':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for metric in ['euclidean', 'manhattan', 'chebyshev', 'minkowski']:
-    m = KNeighborsClassifier(n_neighbors=5, metric=metric)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
-    print(f"  {metric:<15} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# PARAMETR 3: SVM – parametr regularyzacji C
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 3 | SVM – parametr regularyzacji (C)")
+print_param_header("PARAMETR 2 | SVM – parametr regularyzacji (C)")
 print(f"  {'C':<15} {'Train Acc':>12} {'Test Acc':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
 for c in [0.1, 1.0, 10.0, 100.0]:
@@ -131,24 +117,10 @@ for c in [0.1, 1.0, 10.0, 100.0]:
     tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
     te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
     print(f"  C = {c:<11} {tr:>12.4f} {te:>12.4f}")
-
 # ------------------------------------------------------------------
-# PARAMETR 4: SVM – rodzaj jądra (kernel)
+# PARAMETR 3: Drzewo Decyzyjne – maksymalna głębokość (max_depth)
 # ------------------------------------------------------------------
-print_param_header("PARAMETR 4 | SVM – rodzaj jądra (kernel)")
-print(f"  {'kernel':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for kernel in ['linear', 'rbf', 'poly', 'sigmoid']:
-    m = SVC(C=1.0, kernel=kernel, random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
-    print(f"  {kernel:<15} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# PARAMETR 5: Drzewo Decyzyjne – maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 5 | Drzewo Decyzyjne – maksymalna głębokość (max_depth)")
+print_param_header("PARAMETR 3 | Drzewo Decyzyjne – maksymalna głębokość (max_depth)")
 print(f"  {'max_depth':<15} {'Train Acc':>12} {'Test Acc':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
 for depth in [3, 5, 10, None]:
@@ -158,24 +130,10 @@ for depth in [3, 5, 10, None]:
     te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
     label = str(depth) if depth is not None else 'None (brak)'
     print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
-
 # ------------------------------------------------------------------
-# PARAMETR 6: Drzewo Decyzyjne – min. liczba próbek w liściu (min_samples_leaf)
+# PARAMETR 4: Las Losowy – liczba drzew (n_estimators)
 # ------------------------------------------------------------------
-print_param_header("PARAMETR 6 | Drzewo Decyzyjne – min. próbki w liściu (min_samples_leaf)")
-print(f"  {'min_samples_leaf':<18} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*18} {'-'*12} {'-'*12}")
-for msl in [1, 5, 20, 50]:
-    m = DecisionTreeClassifier(min_samples_leaf=msl, random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
-    print(f"  {msl:<18} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# PARAMETR 7: Las Losowy – liczba drzew (n_estimators)
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 7 | Las Losowy – liczba drzew (n_estimators)")
+print_param_header("PARAMETR 4 | Las Losowy – liczba drzew (n_estimators)")
 print(f"  {'n_estimators':<15} {'Train Acc':>12} {'Test Acc':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
 for n_est in [10, 50, 100, 200]:
@@ -185,23 +143,10 @@ for n_est in [10, 50, 100, 200]:
     te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
     print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
-# PARAMETR 8: Las Losowy – liczba cech przy podziale (max_features)
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 8 | Las Losowy – liczba cech przy podziale (max_features)")
-print(f"  {'max_features':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for mf in ['sqrt', 'log2', 0.3, 0.5]:
-    m = RandomForestClassifier(n_estimators=100, max_features=mf, random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf,  m.predict(X_test_clf_s))
-    print(f"  {str(mf):<15} {tr:>12.4f} {te:>12.4f}")
-
-
 # ============================================================
 # 3. PROBLEM REGRESYJNY
 # ============================================================
+
 print_header("PROBLEM REGRESYJNY  |  Metryka: MSE (błąd średniokwadratowy)")
 
 # ------------------------------------------------------------------
@@ -218,23 +163,9 @@ for k in [3, 5, 7, 9]:
     print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
 
 # ------------------------------------------------------------------
-# PARAMETR 2: KNN – sposób ważenia sąsiadów (weights)
+# PARAMETR 2: SVR – parametr regularyzacji C
 # ------------------------------------------------------------------
-print_param_header("PARAMETR 2 | KNN – ważenie sąsiadów (weights)")
-print(f"  {'weights':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for weights in ['uniform', 'distance']:
-    for k in [3, 7]:
-        m = KNeighborsRegressor(n_neighbors=k, weights=weights)
-        m.fit(X_train_reg_s, y_train_reg)
-        tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-        te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
-        print(f"  {weights:<10} k={k:<4} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# PARAMETR 3: SVR – parametr regularyzacji C
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 3 | SVR – parametr regularyzacji (C)")
+print_param_header("PARAMETR 2 | SVR – parametr regularyzacji (C)")
 print(f"  {'C':<15} {'Train MSE':>12} {'Test MSE':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
 for c in [0.1, 1.0, 10.0, 100.0]:
@@ -243,24 +174,10 @@ for c in [0.1, 1.0, 10.0, 100.0]:
     tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
     te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
     print(f"  C = {c:<11} {tr:>12.4f} {te:>12.4f}")
-
 # ------------------------------------------------------------------
-# PARAMETR 4: SVR – rodzaj jądra (kernel)
+# PARAMETR 3: Drzewo Decyzyjne – maksymalna głębokość (max_depth)
 # ------------------------------------------------------------------
-print_param_header("PARAMETR 4 | SVR – rodzaj jądra (kernel)")
-print(f"  {'kernel':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for kernel in ['linear', 'rbf', 'poly', 'sigmoid']:
-    m = SVR(C=1.0, kernel=kernel)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
-    print(f"  {kernel:<15} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# PARAMETR 5: Drzewo Decyzyjne – maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 5 | Drzewo Decyzyjne – maksymalna głębokość (max_depth)")
+print_param_header("PARAMETR 3 | Drzewo Decyzyjne – maksymalna głębokość (max_depth)")
 print(f"  {'max_depth':<15} {'Train MSE':>12} {'Test MSE':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
 for depth in [3, 5, 10, None]:
@@ -272,22 +189,9 @@ for depth in [3, 5, 10, None]:
     print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
 
 # ------------------------------------------------------------------
-# PARAMETR 6: Drzewo Decyzyjne – min. próbki w liściu (min_samples_leaf)
+# PARAMETR 4: Las Losowy – liczba drzew (n_estimators)
 # ------------------------------------------------------------------
-print_param_header("PARAMETR 6 | Drzewo Decyzyjne – min. próbki w liściu (min_samples_leaf)")
-print(f"  {'min_samples_leaf':<18} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*18} {'-'*12} {'-'*12}")
-for msl in [1, 5, 20, 50]:
-    m = DecisionTreeRegressor(min_samples_leaf=msl, random_state=42)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
-    print(f"  {msl:<18} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# PARAMETR 7: Las Losowy – liczba drzew (n_estimators)
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 7 | Las Losowy – liczba drzew (n_estimators)")
+print_param_header("PARAMETR 4 | Las Losowy – liczba drzew (n_estimators)")
 print(f"  {'n_estimators':<15} {'Train MSE':>12} {'Test MSE':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
 for n_est in [10, 50, 100, 200]:
@@ -297,18 +201,6 @@ for n_est in [10, 50, 100, 200]:
     te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
     print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
-# PARAMETR 8: Las Losowy – liczba cech przy podziale (max_features)
-# ------------------------------------------------------------------
-print_param_header("PARAMETR 8 | Las Losowy – liczba cech przy podziale (max_features)")
-print(f"  {'max_features':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for mf in ['sqrt', 'log2', 0.3, 0.5]:
-    m = RandomForestRegressor(n_estimators=100, max_features=mf, random_state=42)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg,  m.predict(X_test_reg_s))
-    print(f"  {str(mf):<15} {tr:>12.4f} {te:>12.4f}")
 
 print("\n" + "=" * 60)
 print("Zakończono analizę metod uczenia maszynowego.")
