@@ -1,4 +1,5 @@
 from neuralNetwork import NeuralNetwork
+from data_preparation import prepare_data, split_and_prepare_for_network
 import pandas as pd
 import numpy as np
 import copy
@@ -13,11 +14,11 @@ PARAM_GRID = {
         0.8,
         0.9
     ],
-    "layers": [ # warstwy
-        [11, 7, 1],
-        [11, 13, 1],
-        [11, 11, 1],
-        [11, 11, 4, 1]
+    "layers": [ # warstwy          #zmienione z 11 na 21
+        [21, 7, 1],
+        [21, 13, 1],
+        [21, 11, 1],
+        [21, 11, 4, 1]
     ],
     "activation": [ # funkcja aktywacji
         'relu',
@@ -63,10 +64,18 @@ PARAM_GRID = {
 data = None # dane do wczytania
 
 # ==========================================
+# Wczytanie i przygotowanie danych
+
+# Wczytujemy dane i od razu dzielimy je na te do klasyfikacji i regresji.
+# Robimy to tutaj, żeby nie wczytywać pliku CSV setki razy w pętli.
+X_clf_all, y_clf_all, X_reg_all, y_reg_all = prepare_data("data/credit_risk_dataset.csv")
+# ==========================================
+
+# ==========================================
 # WARTOŚCI DOMYŚLNE (dla zachowania zasady ceteris paribus)
 
 default_params = {
-    "layers": [11, 11, 1],
+    "layers": [21, 11, 1],       # Zmienione z [11, 11, 1]
     "activation": "sigmoid",
     "learning_rate": 0.001,
     "multiplier": 0.01,
@@ -82,20 +91,18 @@ default_params = {
 def run_experiment(params, test_id, param_name, value, task, rng_coef):
     try:
         # -----------------------------------
-        # Podział danych na zbiór uczący i testowy
-        data_learn = None
-        data_test = None
-
+        # Podział danych na zbiór uczący i testowy ze standaryzacją
+        
         if task == "regression":
-            X_learn = None
-            y_learn = None
-            X_test = None
-            y_test = None
+            X_learn, y_learn, X_test, y_test = split_and_prepare_for_network(
+                X_reg_all, y_reg_all, params["division_coefficient"]
+            )
+
+            
         elif task == "classification":
-            X_learn = None
-            y_learn = None
-            X_test = None
-            y_test = None
+            X_learn,  y_learn, X_test, y_test = split_and_prepare_for_network(
+                X_clf_all, y_clf_all, params["division_coefficient"]
+            )
         else:
             raise ValueError(f"Unknown task: {task}")
 
