@@ -79,23 +79,25 @@ default_params = {
 # ==========================================
 # FUNKCJA TESTUJĄCA
 
-def run_experiment(params, test_id, param_name, value, task, rng_coef):
+def run_experiment(data, params, test_id, task, rng_coef):
     try:
         # -----------------------------------
         # Podział danych na zbiór uczący i testowy
-        data_learn = None
-        data_test = None
+        train_size = int(len(data) * params["division_coefficient"])
+
+        data_learn = data.iloc[:train_size]
+        data_test = data.iloc[train_size:]
 
         if task == "regression":
-            X_learn = None
-            y_learn = None
-            X_test = None
-            y_test = None
+            X_learn = data_learn.drop(columns=["zmienna_objaśniana"])
+            y_learn = data_learn["zmienna_objaśniana"]
+            X_test = data_test.drop(columns=["zmienna_objaśniana"])
+            y_test = data_test["zmienna_objaśniana"]
         elif task == "classification":
-            X_learn = None
-            y_learn = None
-            X_test = None
-            y_test = None
+            X_learn = data_learn.drop(columns=["zmienna_objaśniana"])
+            y_learn = data_learn["zmienna_objaśniana"]
+            X_test = data_test.drop(columns=["zmienna_objaśniana"])
+            y_test = data_test["zmienna_objaśniana"]
         else:
             raise ValueError(f"Unknown task: {task}")
 
@@ -146,7 +148,7 @@ for task in ["regression", "classification"]:
             est_err = 0
             count = 0
             for rng_coef in [10, 20, 30, 40, 50]:
-                loss = run_experiment(params, test_id, param_name=param_name, value=value, task=task, rng_coef=rng_coef)
+                loss = run_experiment(data, params, test_id, task=task, rng_coef=rng_coef)
 
                 if loss is not None:
                     est_err += loss
