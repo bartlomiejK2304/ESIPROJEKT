@@ -1,7 +1,7 @@
-from email.errors import NonASCIILocalPartDefect
-
 from neuralNetwork import NeuralNetwork
 import pandas as pd
+import numpy as np
+import copy
 
 # ==========================================
 # Wartości parametrów do testowania (8 parametrów)
@@ -14,16 +14,16 @@ PARAM_GRID = {
         0.9
     ],
     "layers": [ # warstwy
-        [3, 5, 1],
-        [3, 10, 1],
-        [3, 8, 4, 1],
-        [3, 16, 8, 1]
+        [11, 7, 1],
+        [11, 13, 1],
+        [11, 11, 1],
+        [11, 11, 4, 1]
     ],
     "activation": [ # funkcja aktywacji
         'relu',
         'tanh',
         'sigmoid',
-        'linear'
+        'leaky_relu'
     ],
     "learning_rate": [ # współczynnik uczenia
         0.1,
@@ -61,10 +61,9 @@ PARAM_GRID = {
 # Wczytanie i przygotowanie danych
 
 data = None # dane do wczytania
-results = []
 
 # ==========================================
-# WARTOŚCI DOMYŚLNE (punkt odniesienia)
+# WARTOŚCI DOMYŚLNE (dla zachowania zasady ceteris paribus)
 
 default_params = {
     "layers": [11, 11, 1],
@@ -80,7 +79,7 @@ default_params = {
 # ==========================================
 # FUNKCJA TESTUJĄCA
 
-def run_experiment(params, test_id, task="regression"):
+def run_experiment(params, test_id, param_name, value, task, rng_coef):
     try:
         # -----------------------------------
         # Podział danych na zbiór uczący i testowy
@@ -92,11 +91,13 @@ def run_experiment(params, test_id, task="regression"):
             y_learn = None
             X_test = None
             y_test = None
-        if task == "classification":
+        elif task == "classification":
             X_learn = None
             y_learn = None
             X_test = None
             y_test = None
+        else:
+            raise ValueError(f"Unknown task: {task}")
 
 
         model = NeuralNetwork(
@@ -104,7 +105,8 @@ def run_experiment(params, test_id, task="regression"):
             activation=params["activation"],
             learning_rate=params["learning_rate"],
             multiplier=params["multiplier"],
-            task=task
+            task=task,
+            rng_coef=rng_coef,
         )
 
         model.fit(
@@ -116,80 +118,95 @@ def run_experiment(params, test_id, task="regression"):
         )
 
         y_pred = model.predict(X_test)
-        loss = model.compute_loss(y_pred, y_learn)
+        loss = model.compute_loss(y_pred, y_test)
 
-        if params["task"] == "regression":
-            results.append({
-                **params,
-                "final_MSE": loss,
-            })
-
-            print(f"Test {test_id} | MSE={loss}")
-
-        if params["task"] == "classification":
-            results.append({
-                **params,
-                "final_BCE": loss,
-            })
-
-            print(f"Test {test_id} | BCE={loss}")
 
     except Exception as e:
         print(f"[FAIL] Test {test_id}:", e)
+        return None
 
+    return loss
 
 # ==========================================
 # TESTY POJEDYNCZYCH PARAMETRÓW
 
-test_id = 0
 
-for param_name, values in PARAM_GRID.items():
-    for value in values:
-        params = default_params.copy()
-        params[param_name] = value
+for task in ["regression", "classification"]:
+    print(f"============================================\n"
+          f"TEST: {task} NN\n"
+          f"============================================")
+    results = []
 
-        print(f"Test {test_id}: {param_name} = {value}")
+    test_id = 0
+    for param_name, values in PARAM_GRID.items():
+        for value in values:
+            params = copy.deepcopy(default_params)
+            params[param_name] = value
 
-        run_experiment(params, test_id)
-        test_id += 1
+            est_err = 0
+            count = 0
+            for rng_coef in [10, 20, 30, 40, 50]:
+                loss = run_experiment(params, test_id, param_name=param_name, value=value, task=task, rng_coef=rng_coef)
 
+                if loss is not None:
+                    est_err += loss
+                    count += 1
 
-# ==========================================
-# KILKA SENSOWNYCH KOMBINACJI
+            if count > 0:
+                est_err /= count
+            else:
+                est_err = np.nan
 
-custom_tests = [
-    # głębsza sieć + mniejszy learning rate
-    {"layers": [3, 16, 8, 1], "learning_rate": 0.001},
+            if task == "regression":
+                results.append({
+                    "param": param_name,
+                    "value": value,
+                    "final_MSE": est_err,
+                })
+            elif task == "classification":
+                results.append({
+                    "param": param_name,
+                    "value": value,
+                    "final_BCE": est_err,
+                })
 
-    # mała sieć + duży learning rate
-    {"layers": [3, 5, 1], "learning_rate": 0.1},
+            test_id += 1
 
-    # tanh + średnie LR
-    {"activation": "tanh", "learning_rate": 0.01},
+    # ==========================================
+    # TABELA WYNIKÓW
 
-    # sigmoid + mały LR
-    {"activation": "sigmoid", "learning_rate": 0.001},
-]
+    df = pd.DataFrame(results)
+    metric = "final_MSE" if task == "regression" else "final_BCE"
+    df = df.sort_values(by=["param", metric])
 
-for custom in custom_tests:
-    params = default_params.copy()
-    params.update(custom)
-    run_experiment(params, test_id)
-    test_id += 1
+    groups = []
 
+    for param, group in df.groupby("param"):
+        group = group.copy()
+        group = group.sort_values(by=metric)
 
-# ==========================================
-# TABELA WYNIKÓW
+        group["value"] = group["value"].astype(str)
 
-df = pd.DataFrame(results)
-df = df.sort_values(by="final_loss")
+        group = group.rename(columns={
+            "value": f"{param}_value",
+            metric: f"{param}_{metric}"
+        })
 
-print("\nTOP 10 WYNIKÓW:")
-print(df.head(10))
+        groups.append(group[[f"{param}_value", f"{param}_{metric}"]].reset_index(drop=True))
 
+    max_len = max(len(g) for g in groups)
+    empty_col = pd.DataFrame({"": [""] * max_len})
 
-# ==========================================
-# ZAPIS DO CSV
+    final_with_space = []
 
-df.to_csv("results_regression.csv", index=False)
-print("\nZapisano do results_regression.csv")
+    for g in groups:
+        final_with_space.append(g)
+        final_with_space.append(empty_col)
+
+    final_df = pd.concat(final_with_space, axis=1).fillna("")
+
+    # ==========================================
+    # ZAPIS DO CSV
+
+    final_df.to_excel(f"results_{task}.xlsx")
+    print(f"\nZapisano do results_{task}.xlsx")

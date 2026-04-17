@@ -7,6 +7,9 @@ import numpy as np
 def relu(x): return np.maximum(0, x)
 def relu_derivative(x): return (x > 0).astype(float) # pochodna
 
+def leaky_relu(x): return np.where(x > 0, x, 0.01 * x)
+def leaky_relu_derivative(x): return np.where(x > 0, 1, 0.01)
+
 def sigmoid(x): return 1 / (1 + np.exp(-x))
 def sigmoid_derivative(x): return sigmoid(x) * (1 - sigmoid(x))
 
@@ -20,7 +23,7 @@ def linear_derivative(x): return np.ones_like(x)
 # Klasa Regresyjnej Sieci neuronowej
 
 class NeuralNetwork:
-    def __init__(self, layers: list[int], activation, learning_rate=0.001, multiplier=0.01, task="regression"):
+    def __init__(self, layers: list[int], activation, learning_rate=0.001, multiplier=0.01, task="regression", rng_coef=10):
         self.task = task # przeznaczenie sieci
         self.layers = layers # lista liczby neuronów w każdej warstwie
         self.learning_rate = learning_rate # współczynnik uczenia
@@ -30,7 +33,8 @@ class NeuralNetwork:
 
         # inicjalizacja wag
         for i in range(len(layers) - 1): # bo warstwa wyjściowa nie łączy się już z żadną
-            w = np.random.randn(layers[i], layers[i + 1]) * multiplier # losujemy wagi dla danej warstwy
+            rnd = np.random.default_rng(rng_coef) # dla powtarzalności wyników
+            w = rnd.normal(layers[i], layers[i + 1]) * multiplier # losujemy wagi dla danej warstwy
             b = np.zeros((1, layers[i + 1])) # ustawiamy biasy
 
             self.weights.append(w)
@@ -46,7 +50,7 @@ class NeuralNetwork:
         elif activation == 'tanh':
             self.activation = tanh
             self.activation_derivative = tanh_derivative
-        elif activation == 'linear':
+        elif activation == 'leaky_relu':
             self.activation = linear
             self.activation_derivative = linear_derivative
 
