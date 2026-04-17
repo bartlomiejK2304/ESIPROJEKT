@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import warnings
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -32,7 +33,7 @@ df = pd.get_dummies(df, drop_first=True)
 df = df.astype(float)
 
 # Zmienne docelowe:
-#   - klasyfikacja: loan_status (0/1 - czy pożyczka spłacona)
+#   - klasyfikacja: loan_status   (0/1 - czy pożyczka spłacona)
 #   - regresja:     loan_int_rate (wysokość oprocentowania)
 TARGET_CLF = 'loan_status'
 TARGET_REG = 'loan_int_rate'
@@ -41,56 +42,50 @@ y_clf = df[TARGET_CLF].values.ravel()
 y_reg = df[TARGET_REG].values.ravel()
 
 # Usuwamy OBIE kolumny docelowe z X (uniknięcie target leakage)
-X_clf = df.drop([TARGET_CLF, TARGET_REG], axis=1).values
-X_reg = df.drop([TARGET_REG, TARGET_CLF], axis=1).values
+X = df.drop([TARGET_CLF, TARGET_REG], axis=1).values
 
 # Podział 70% train / 30% test
-X_train_clf, X_test_clf, y_train_clf, y_test_clf = train_test_split(
-    X_clf, y_clf, test_size=0.3, stratify=y_clf, random_state=42)
-X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
-    X_reg, y_reg, test_size=0.3, random_state=42)
-
-# Skalowanie (tylko kolumny numeryczne – bez 0/1)
-binary_cols = [i for i in range(X_train_clf.shape[1])
-               if np.isin(X_train_clf[:, i], [0, 1]).all()]
-numeric_cols = [i for i in range(X_train_clf.shape[1])
-                if i not in binary_cols]
-
-# ===== KLASYFIKACJA =====
-scaler_clf = StandardScaler()
-X_train_clf_s = X_train_clf.copy()
-X_test_clf_s = X_test_clf.copy()
-X_train_clf_s[:, numeric_cols] = scaler_clf.fit_transform(X_train_clf[:, numeric_cols])
-X_test_clf_s[:, numeric_cols] = scaler_clf.transform(X_test_clf[:, numeric_cols])
-
-# ===== REGRESJA =====
-binary_cols_reg = [i for i in range(X_train_reg.shape[1])
-                   if np.isin(X_train_reg[:, i], [0, 1]).all()]
-numeric_cols_reg = [i for i in range(X_train_reg.shape[1])
-                    if i not in binary_cols_reg]
-
-scaler_reg = StandardScaler()
-X_train_reg_s = X_train_reg.copy()
-X_test_reg_s = X_test_reg.copy()
-X_train_reg_s[:, numeric_cols_reg] = scaler_reg.fit_transform(X_train_reg[:, numeric_cols_reg])
-X_test_reg_s[:, numeric_cols_reg] = scaler_reg.transform(X_test_reg[:, numeric_cols_reg])
+C_X_train, C_X_test, C_y_train, C_y_test = train_test_split(
+    X, y_clf, test_size=0.3, stratify=y_clf, random_state=42)
+R_X_train, R_X_test, R_y_train, R_y_test = train_test_split(
+    X, y_reg, test_size=0.3, random_state=42)
 
 print("Dane przygotowane.")
-print(f"  Rozmiar zbioru uczącego  (clf): {X_train_clf_s.shape}")
-print(f"  Rozmiar zbioru testowego (clf): {X_test_clf_s.shape}")
-print(f"  Rozmiar zbioru uczącego  (reg): {X_train_reg_s.shape}")
-print(f"  Rozmiar zbioru testowego (reg): {X_test_reg_s.shape}")
+print(f"  Rozmiar zbioru uczącego  (clf): {C_X_train.shape}")
+print(f"  Rozmiar zbioru testowego (clf): {C_X_test.shape}")
+print(f"  Rozmiar zbioru uczącego  (reg): {R_X_train.shape}")
+print(f"  Rozmiar zbioru testowego (reg): {R_X_test.shape}")
+
+# Katalog na wyniki
+os.makedirs('Python/wyniki', exist_ok=True)
+
 
 # ============================================================
-# POMOCNICZE FUNKCJE
+# FUNKCJE POMOCNICZE
 # ============================================================
 def print_header(title):
     print(f"\n{'=' * 60}")
     print(f"  {title}")
     print(f"{'=' * 60}")
 
-def print_param_header(desc):
-    print(f"\n--- {desc} ---")
+
+def apply_scaler(scaler, X_train, X_test):
+    """Zwraca przeskalowane kopie X_train i X_test (lub surowe, jeśli scaler=None)."""
+    if scaler is None:
+        return X_train.copy(), X_test.copy()
+    X_tr = scaler.fit_transform(X_train)
+    X_te = scaler.transform(X_test)
+    return X_tr, X_te
+
+
+# Zestaw skalerów używany dla KAŻDEJ metody (bo każda reaguje inaczej)
+def get_scalers():
+    return {
+        'Standard': StandardScaler(),  # Średnia 0, odchylenie 1
+        'MinMax': MinMaxScaler(),      # Wszystko w przedziale 0-1
+        'Robust': RobustScaler(),      # Odporny na wartości odstające
+        'None': None                   # Dane surowe
+    }
 
 
 # ============================================================
@@ -98,112 +93,223 @@ def print_param_header(desc):
 # ============================================================
 print_header("PROBLEM KLASYFIKACYJNY  |  Metryka: Accuracy")
 
-# ------------------------------------------------------------------
-# KNN – PARAMETR 1: liczba sąsiadów (n_neighbors)
-# ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 1: liczba sąsiadów (n_neighbors)")
-print(f"  {'n_neighbors':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for k in [3, 5, 7, 9]:
-    m = KNeighborsClassifier(n_neighbors=k)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
+# ------------------------------------------------------------
+# 2.1 KNN - KLASYFIKACJA
+# ------------------------------------------------------------
+print("\n--- KLASYFIKACJA: k-Nearest Neighbors ---")
 
-# ------------------------------------------------------------------
-# KNN – PARAMETR 2: wagi sąsiadów (weights)
-# ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 2: wagi sąsiadów (weights)")
-print(f"  {'weights':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for w in ['uniform', 'distance']:
-    m = KNeighborsClassifier(n_neighbors=5, weights=w)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  {w:<15} {tr:>12.4f} {te:>12.4f}")
+n_neighbors = [3, 5, 10, 20]
+weights = ['uniform', 'distance']
+p_metric = [1, 2, 3]
+scalers = get_scalers()
 
-# ------------------------------------------------------------------
-# SVM – PARAMETR 1: parametr regularyzacji C
-# ------------------------------------------------------------------
-print_param_header("SVM | PARAMETR 1: parametr regularyzacji (C)")
-print(f"  {'C':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for c in [0.1, 1.0, 10.0, 100.0]:
-    m = SVC(C=c, kernel='rbf', random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  C = {c:<11} {tr:>12.4f} {te:>12.4f}")
+wyniki_s, wyniki_k, wyniki_w, wyniki_p = [], [], [], []
 
-# ------------------------------------------------------------------
-# SVM – PARAMETR 2: rodzaj jądra (kernel)
-# ------------------------------------------------------------------
-print_param_header("SVM | PARAMETR 2: rodzaj jądra (kernel)")
-print(f"  {'kernel':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for kern in ['linear', 'poly', 'rbf', 'sigmoid']:
-    m = SVC(C=1.0, kernel=kern, random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  {kern:<15} {tr:>12.4f} {te:>12.4f}")
+# 1. Scaler (NAJPIERW - KNN opiera się na odległościach!)
+for nazwa, scaler in scalers.items():
+    X_tr, X_te = apply_scaler(scaler, C_X_train, C_X_test)
+    knn = KNeighborsClassifier()
+    knn.fit(X_tr, C_y_train)
+    wyniki_s.append({
+        'scaler': nazwa, 'n_neighbors': '-', 'weights': '-', 'p': '-',
+        'train_accuracy[%]': round(knn.score(X_tr, C_y_train) * 100, 2),
+        'accuracy[%]': round(knn.score(X_te, C_y_test) * 100, 2)
+    })
 
-# ------------------------------------------------------------------
-# DRZEWO – PARAMETR 1: maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("Drzewo Decyzyjne | PARAMETR 1: maksymalna głębokość (max_depth)")
-print(f"  {'max_depth':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for depth in [3, 5, 10, None]:
-    m = DecisionTreeClassifier(max_depth=depth, random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    label = str(depth) if depth is not None else 'None (brak)'
-    print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
+df_s = pd.DataFrame(wyniki_s)
+best_scaler_name = df_s.loc[df_s['accuracy[%]'].idxmax(), 'scaler']
+best_scaler = scalers[best_scaler_name]
+X_tr_best, X_te_best = apply_scaler(best_scaler, C_X_train, C_X_test)
 
-# ------------------------------------------------------------------
-# DRZEWO – PARAMETR 2: min. liczba obserwacji w liściu (min_samples_leaf)
-# ------------------------------------------------------------------
-print_param_header("Drzewo Decyzyjne | PARAMETR 2: min. liczba obserwacji w liściu (min_samples_leaf)")
-print(f"  {'min_samples_leaf':<20} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*20} {'-'*12} {'-'*12}")
-for msl in [1, 5, 20, 50]:
-    m = DecisionTreeClassifier(min_samples_leaf=msl, random_state=42)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  {msl:<20} {tr:>12.4f} {te:>12.4f}")
+# 2. n_neighbors
+for k in n_neighbors:
+    knn = KNeighborsClassifier(n_neighbors=k)
+    knn.fit(X_tr_best, C_y_train)
+    wyniki_k.append({
+        'scaler': best_scaler_name, 'n_neighbors': k, 'weights': '-', 'p': '-',
+        'train_accuracy[%]': round(knn.score(X_tr_best, C_y_train) * 100, 2),
+        'accuracy[%]': round(knn.score(X_te_best, C_y_test) * 100, 2)
+    })
 
-# ------------------------------------------------------------------
-# LAS LOSOWY – PARAMETR 1: liczba drzew (n_estimators)
-# ------------------------------------------------------------------
-print_param_header("Las Losowy | PARAMETR 1: liczba drzew (n_estimators)")
-print(f"  {'n_estimators':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for n_est in [10, 50, 100, 200]:
-    m = RandomForestClassifier(n_estimators=n_est, random_state=42, n_jobs=-1)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
+df_k = pd.DataFrame(wyniki_k)
+best_k = int(df_k.loc[df_k['accuracy[%]'].idxmax(), 'n_neighbors'])
 
-# ------------------------------------------------------------------
-# LAS LOSOWY – PARAMETR 2: maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("Las Losowy | PARAMETR 2: maksymalna głębokość drzew (max_depth)")
-print(f"  {'max_depth':<15} {'Train Acc':>12} {'Test Acc':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for depth in [3, 5, 10, None]:
-    m = RandomForestClassifier(n_estimators=100, max_depth=depth,
-                               random_state=42, n_jobs=-1)
-    m.fit(X_train_clf_s, y_train_clf)
-    tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
-    te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    label = str(depth) if depth is not None else 'None (brak)'
-    print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
+# 3. weights
+for w in weights:
+    knn = KNeighborsClassifier(n_neighbors=best_k, weights=w)
+    knn.fit(X_tr_best, C_y_train)
+    wyniki_w.append({
+        'scaler': best_scaler_name, 'n_neighbors': best_k, 'weights': w, 'p': '-',
+        'train_accuracy[%]': round(knn.score(X_tr_best, C_y_train) * 100, 2),
+        'accuracy[%]': round(knn.score(X_te_best, C_y_test) * 100, 2)
+    })
+
+df_w = pd.DataFrame(wyniki_w)
+best_w = df_w.loc[df_w['accuracy[%]'].idxmax(), 'weights']
+
+# 4. p
+for p_val in p_metric:
+    knn = KNeighborsClassifier(n_neighbors=best_k, weights=best_w, p=p_val)
+    knn.fit(X_tr_best, C_y_train)
+    wyniki_p.append({
+        'scaler': best_scaler_name, 'n_neighbors': best_k, 'weights': best_w, 'p': p_val,
+        'train_accuracy[%]': round(knn.score(X_tr_best, C_y_train) * 100, 2),
+        'accuracy[%]': round(knn.score(X_te_best, C_y_test) * 100, 2)
+    })
+
+knn_c_df = pd.concat([
+    pd.DataFrame(wyniki_s),
+    pd.DataFrame(wyniki_k),
+    pd.DataFrame(wyniki_w),
+    pd.DataFrame(wyniki_p)
+], ignore_index=True)
+knn_c_df.to_csv('Python/wyniki/KNN_Classification.csv', index=False)
+print(knn_c_df.to_string(index=False))
+
+
+# ------------------------------------------------------------
+# 2.2 SVM - KLASYFIKACJA
+# ------------------------------------------------------------
+print("\n--- KLASYFIKACJA: Support Vector Machine ---")
+
+C_values = [0.1, 1.0, 10.0, 100.0]
+kernels = ['linear', 'poly', 'rbf', 'sigmoid']
+scalers = get_scalers()
+
+wyniki_s, wyniki_c, wyniki_kern = [], [], []
+
+# 1. Scaler (SVM z RBF też jest wrażliwy na skalę)
+for nazwa, scaler in scalers.items():
+    X_tr, X_te = apply_scaler(scaler, C_X_train, C_X_test)
+    svm = SVC(random_state=42)
+    svm.fit(X_tr, C_y_train)
+    wyniki_s.append({
+        'scaler': nazwa, 'C': '-', 'kernel': '-',
+        'train_accuracy[%]': round(svm.score(X_tr, C_y_train) * 100, 2),
+        'accuracy[%]': round(svm.score(X_te, C_y_test) * 100, 2)
+    })
+
+df_s = pd.DataFrame(wyniki_s)
+best_scaler_name = df_s.loc[df_s['accuracy[%]'].idxmax(), 'scaler']
+best_scaler = scalers[best_scaler_name]
+X_tr_best, X_te_best = apply_scaler(best_scaler, C_X_train, C_X_test)
+
+# 2. C
+for c in C_values:
+    svm = SVC(C=c, random_state=42)
+    svm.fit(X_tr_best, C_y_train)
+    wyniki_c.append({
+        'scaler': best_scaler_name, 'C': c, 'kernel': '-',
+        'train_accuracy[%]': round(svm.score(X_tr_best, C_y_train) * 100, 2),
+        'accuracy[%]': round(svm.score(X_te_best, C_y_test) * 100, 2)
+    })
+
+df_c = pd.DataFrame(wyniki_c)
+best_c = float(df_c.loc[df_c['accuracy[%]'].idxmax(), 'C'])
+
+# 3. kernel
+for kern in kernels:
+    svm = SVC(C=best_c, kernel=kern, random_state=42)
+    svm.fit(X_tr_best, C_y_train)
+    wyniki_kern.append({
+        'scaler': best_scaler_name, 'C': best_c, 'kernel': kern,
+        'train_accuracy[%]': round(svm.score(X_tr_best, C_y_train) * 100, 2),
+        'accuracy[%]': round(svm.score(X_te_best, C_y_test) * 100, 2)
+    })
+
+svm_c_df = pd.concat([
+    pd.DataFrame(wyniki_s),
+    pd.DataFrame(wyniki_c),
+    pd.DataFrame(wyniki_kern)
+], ignore_index=True)
+svm_c_df.to_csv('Python/wyniki/SVM_Classification.csv', index=False)
+print(svm_c_df.to_string(index=False))
+
+
+# ------------------------------------------------------------
+# 2.3 DRZEWO DECYZYJNE - KLASYFIKACJA
+# ------------------------------------------------------------
+print("\n--- KLASYFIKACJA: Drzewo Decyzyjne ---")
+
+max_depths = [3, 5, 10, None]
+min_samples_leaf = [1, 5, 20, 50]
+# Drzewa NIE wymagają skalowania - pomijamy krok skalera.
+
+wyniki_d, wyniki_msl = [], []
+
+# 1. max_depth
+for depth in max_depths:
+    tree = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    tree.fit(C_X_train, C_y_train)
+    wyniki_d.append({
+        'max_depth': str(depth), 'min_samples_leaf': '-',
+        'train_accuracy[%]': round(tree.score(C_X_train, C_y_train) * 100, 2),
+        'accuracy[%]': round(tree.score(C_X_test, C_y_test) * 100, 2)
+    })
+
+df_d = pd.DataFrame(wyniki_d)
+best_depth_str = df_d.loc[df_d['accuracy[%]'].idxmax(), 'max_depth']
+best_depth = None if best_depth_str == 'None' else int(best_depth_str)
+
+# 2. min_samples_leaf
+for msl in min_samples_leaf:
+    tree = DecisionTreeClassifier(max_depth=best_depth, min_samples_leaf=msl, random_state=42)
+    tree.fit(C_X_train, C_y_train)
+    wyniki_msl.append({
+        'max_depth': str(best_depth), 'min_samples_leaf': msl,
+        'train_accuracy[%]': round(tree.score(C_X_train, C_y_train) * 100, 2),
+        'accuracy[%]': round(tree.score(C_X_test, C_y_test) * 100, 2)
+    })
+
+tree_c_df = pd.concat([
+    pd.DataFrame(wyniki_d),
+    pd.DataFrame(wyniki_msl)
+], ignore_index=True)
+tree_c_df.to_csv('Python/wyniki/Tree_Classification.csv', index=False)
+print(tree_c_df.to_string(index=False))
+
+
+# ------------------------------------------------------------
+# 2.4 LAS LOSOWY - KLASYFIKACJA
+# ------------------------------------------------------------
+print("\n--- KLASYFIKACJA: Las Losowy ---")
+
+n_estimators = [10, 50, 100, 200]
+max_depths = [3, 5, 10, None]
+# Las losowy również nie wymaga skalowania.
+
+wyniki_n, wyniki_d = [], []
+
+# 1. n_estimators
+for n_est in n_estimators:
+    rf = RandomForestClassifier(n_estimators=n_est, random_state=42, n_jobs=-1)
+    rf.fit(C_X_train, C_y_train)
+    wyniki_n.append({
+        'n_estimators': n_est, 'max_depth': '-',
+        'train_accuracy[%]': round(rf.score(C_X_train, C_y_train) * 100, 2),
+        'accuracy[%]': round(rf.score(C_X_test, C_y_test) * 100, 2)
+    })
+
+df_n = pd.DataFrame(wyniki_n)
+best_n = int(df_n.loc[df_n['accuracy[%]'].idxmax(), 'n_estimators'])
+
+# 2. max_depth
+for depth in max_depths:
+    rf = RandomForestClassifier(n_estimators=best_n, max_depth=depth,
+                                random_state=42, n_jobs=-1)
+    rf.fit(C_X_train, C_y_train)
+    wyniki_d.append({
+        'n_estimators': best_n, 'max_depth': str(depth),
+        'train_accuracy[%]': round(rf.score(C_X_train, C_y_train) * 100, 2),
+        'accuracy[%]': round(rf.score(C_X_test, C_y_test) * 100, 2)
+    })
+
+rf_c_df = pd.concat([
+    pd.DataFrame(wyniki_n),
+    pd.DataFrame(wyniki_d)
+], ignore_index=True)
+rf_c_df.to_csv('Python/wyniki/RF_Classification.csv', index=False)
+print(rf_c_df.to_string(index=False))
 
 
 # ============================================================
@@ -211,113 +317,231 @@ for depth in [3, 5, 10, None]:
 # ============================================================
 print_header("PROBLEM REGRESYJNY  |  Metryka: MSE (błąd średniokwadratowy)")
 
-# ------------------------------------------------------------------
-# KNN – PARAMETR 1: liczba sąsiadów (n_neighbors)
-# ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 1: liczba sąsiadów (n_neighbors)")
-print(f"  {'n_neighbors':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for k in [3, 5, 7, 9]:
-    m = KNeighborsRegressor(n_neighbors=k)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
-# KNN – PARAMETR 2: wagi sąsiadów (weights)
-# ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 2: wagi sąsiadów (weights)")
-print(f"  {'weights':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for w in ['uniform', 'distance']:
-    m = KNeighborsRegressor(n_neighbors=5, weights=w)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {w:<15} {tr:>12.4f} {te:>12.4f}")
+def mse_score(model, X, y):
+    """Zwraca MSE predykcji modelu (im mniej tym lepiej)."""
+    return mean_squared_error(y, model.predict(X))
 
-# ------------------------------------------------------------------
-# SVR – PARAMETR 1: parametr regularyzacji C
-# ------------------------------------------------------------------
-print_param_header("SVR | PARAMETR 1: parametr regularyzacji (C)")
-print(f"  {'C':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for c in [0.1, 1.0, 10.0, 100.0]:
-    m = SVR(C=c, kernel='rbf')
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  C = {c:<11} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
-# SVR – PARAMETR 2: rodzaj jądra (kernel)
-# ------------------------------------------------------------------
-print_param_header("SVR | PARAMETR 2: rodzaj jądra (kernel)")
-print(f"  {'kernel':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for kern in ['linear', 'poly', 'rbf', 'sigmoid']:
-    m = SVR(C=1.0, kernel=kern)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {kern:<15} {tr:>12.4f} {te:>12.4f}")
+# ------------------------------------------------------------
+# 3.1 KNN - REGRESJA
+# ------------------------------------------------------------
+print("\n--- REGRESJA: k-Nearest Neighbors ---")
 
-# ------------------------------------------------------------------
-# DRZEWO – PARAMETR 1: maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("Drzewo Decyzyjne | PARAMETR 1: maksymalna głębokość (max_depth)")
-print(f"  {'max_depth':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for depth in [3, 5, 10, None]:
-    m = DecisionTreeRegressor(max_depth=depth, random_state=42)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    label = str(depth) if depth is not None else 'None (brak)'
-    print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
+n_neighbors = [3, 5, 10, 20]
+weights = ['uniform', 'distance']
+p_metric = [1, 2, 3]
+scalers = get_scalers()
 
-# ------------------------------------------------------------------
-# DRZEWO – PARAMETR 2: min. liczba obserwacji w liściu (min_samples_leaf)
-# ------------------------------------------------------------------
-print_param_header("Drzewo Decyzyjne | PARAMETR 2: min. liczba obserwacji w liściu (min_samples_leaf)")
-print(f"  {'min_samples_leaf':<20} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*20} {'-'*12} {'-'*12}")
-for msl in [1, 5, 20, 50]:
-    m = DecisionTreeRegressor(min_samples_leaf=msl, random_state=42)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {msl:<20} {tr:>12.4f} {te:>12.4f}")
+wyniki_s, wyniki_k, wyniki_w, wyniki_p = [], [], [], []
 
-# ------------------------------------------------------------------
-# LAS LOSOWY – PARAMETR 1: liczba drzew (n_estimators)
-# ------------------------------------------------------------------
-print_param_header("Las Losowy | PARAMETR 1: liczba drzew (n_estimators)")
-print(f"  {'n_estimators':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for n_est in [10, 50, 100, 200]:
-    m = RandomForestRegressor(n_estimators=n_est, random_state=42, n_jobs=-1)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
+# 1. Scaler
+for nazwa, scaler in scalers.items():
+    X_tr, X_te = apply_scaler(scaler, R_X_train, R_X_test)
+    knn = KNeighborsRegressor()
+    knn.fit(X_tr, R_y_train)
+    wyniki_s.append({
+        'scaler': nazwa, 'n_neighbors': '-', 'weights': '-', 'p': '-',
+        'train_MSE': round(mse_score(knn, X_tr, R_y_train), 4),
+        'test_MSE': round(mse_score(knn, X_te, R_y_test), 4)
+    })
 
-# ------------------------------------------------------------------
-# LAS LOSOWY – PARAMETR 2: maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("Las Losowy | PARAMETR 2: maksymalna głębokość drzew (max_depth)")
-print(f"  {'max_depth':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for depth in [3, 5, 10, None]:
-    m = RandomForestRegressor(n_estimators=100, max_depth=depth,
-                              random_state=42, n_jobs=-1)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    label = str(depth) if depth is not None else 'None (brak)'
-    print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
+df_s = pd.DataFrame(wyniki_s)
+# W regresji chcemy MINIMALIZOWAĆ MSE -> idxmin
+best_scaler_name = df_s.loc[df_s['test_MSE'].idxmin(), 'scaler']
+best_scaler = scalers[best_scaler_name]
+X_tr_best, X_te_best = apply_scaler(best_scaler, R_X_train, R_X_test)
+
+# 2. n_neighbors
+for k in n_neighbors:
+    knn = KNeighborsRegressor(n_neighbors=k)
+    knn.fit(X_tr_best, R_y_train)
+    wyniki_k.append({
+        'scaler': best_scaler_name, 'n_neighbors': k, 'weights': '-', 'p': '-',
+        'train_MSE': round(mse_score(knn, X_tr_best, R_y_train), 4),
+        'test_MSE': round(mse_score(knn, X_te_best, R_y_test), 4)
+    })
+
+df_k = pd.DataFrame(wyniki_k)
+best_k = int(df_k.loc[df_k['test_MSE'].idxmin(), 'n_neighbors'])
+
+# 3. weights
+for w in weights:
+    knn = KNeighborsRegressor(n_neighbors=best_k, weights=w)
+    knn.fit(X_tr_best, R_y_train)
+    wyniki_w.append({
+        'scaler': best_scaler_name, 'n_neighbors': best_k, 'weights': w, 'p': '-',
+        'train_MSE': round(mse_score(knn, X_tr_best, R_y_train), 4),
+        'test_MSE': round(mse_score(knn, X_te_best, R_y_test), 4)
+    })
+
+df_w = pd.DataFrame(wyniki_w)
+best_w = df_w.loc[df_w['test_MSE'].idxmin(), 'weights']
+
+# 4. p
+for p_val in p_metric:
+    knn = KNeighborsRegressor(n_neighbors=best_k, weights=best_w, p=p_val)
+    knn.fit(X_tr_best, R_y_train)
+    wyniki_p.append({
+        'scaler': best_scaler_name, 'n_neighbors': best_k, 'weights': best_w, 'p': p_val,
+        'train_MSE': round(mse_score(knn, X_tr_best, R_y_train), 4),
+        'test_MSE': round(mse_score(knn, X_te_best, R_y_test), 4)
+    })
+
+knn_r_df = pd.concat([
+    pd.DataFrame(wyniki_s),
+    pd.DataFrame(wyniki_k),
+    pd.DataFrame(wyniki_w),
+    pd.DataFrame(wyniki_p)
+], ignore_index=True)
+knn_r_df.to_csv('Python/wyniki/KNN_Regression.csv', index=False)
+print(knn_r_df.to_string(index=False))
+
+
+# ------------------------------------------------------------
+# 3.2 SVR - REGRESJA
+# ------------------------------------------------------------
+print("\n--- REGRESJA: Support Vector Regression ---")
+
+C_values = [0.1, 1.0, 10.0, 100.0]
+kernels = ['linear', 'poly', 'rbf', 'sigmoid']
+scalers = get_scalers()
+
+wyniki_s, wyniki_c, wyniki_kern = [], [], []
+
+# 1. Scaler
+for nazwa, scaler in scalers.items():
+    X_tr, X_te = apply_scaler(scaler, R_X_train, R_X_test)
+    svr = SVR()
+    svr.fit(X_tr, R_y_train)
+    wyniki_s.append({
+        'scaler': nazwa, 'C': '-', 'kernel': '-',
+        'train_MSE': round(mse_score(svr, X_tr, R_y_train), 4),
+        'test_MSE': round(mse_score(svr, X_te, R_y_test), 4)
+    })
+
+df_s = pd.DataFrame(wyniki_s)
+best_scaler_name = df_s.loc[df_s['test_MSE'].idxmin(), 'scaler']
+best_scaler = scalers[best_scaler_name]
+X_tr_best, X_te_best = apply_scaler(best_scaler, R_X_train, R_X_test)
+
+# 2. C
+for c in C_values:
+    svr = SVR(C=c)
+    svr.fit(X_tr_best, R_y_train)
+    wyniki_c.append({
+        'scaler': best_scaler_name, 'C': c, 'kernel': '-',
+        'train_MSE': round(mse_score(svr, X_tr_best, R_y_train), 4),
+        'test_MSE': round(mse_score(svr, X_te_best, R_y_test), 4)
+    })
+
+df_c = pd.DataFrame(wyniki_c)
+best_c = float(df_c.loc[df_c['test_MSE'].idxmin(), 'C'])
+
+# 3. kernel
+for kern in kernels:
+    svr = SVR(C=best_c, kernel=kern)
+    svr.fit(X_tr_best, R_y_train)
+    wyniki_kern.append({
+        'scaler': best_scaler_name, 'C': best_c, 'kernel': kern,
+        'train_MSE': round(mse_score(svr, X_tr_best, R_y_train), 4),
+        'test_MSE': round(mse_score(svr, X_te_best, R_y_test), 4)
+    })
+
+svr_r_df = pd.concat([
+    pd.DataFrame(wyniki_s),
+    pd.DataFrame(wyniki_c),
+    pd.DataFrame(wyniki_kern)
+], ignore_index=True)
+svr_r_df.to_csv('Python/wyniki/SVR_Regression.csv', index=False)
+print(svr_r_df.to_string(index=False))
+
+
+# ------------------------------------------------------------
+# 3.3 DRZEWO DECYZYJNE - REGRESJA
+# ------------------------------------------------------------
+print("\n--- REGRESJA: Drzewo Decyzyjne ---")
+
+max_depths = [3, 5, 10, None]
+min_samples_leaf = [1, 5, 20, 50]
+
+wyniki_d, wyniki_msl = [], []
+
+# 1. max_depth
+for depth in max_depths:
+    tree = DecisionTreeRegressor(max_depth=depth, random_state=42)
+    tree.fit(R_X_train, R_y_train)
+    wyniki_d.append({
+        'max_depth': str(depth), 'min_samples_leaf': '-',
+        'train_MSE': round(mse_score(tree, R_X_train, R_y_train), 4),
+        'test_MSE': round(mse_score(tree, R_X_test, R_y_test), 4)
+    })
+
+df_d = pd.DataFrame(wyniki_d)
+best_depth_str = df_d.loc[df_d['test_MSE'].idxmin(), 'max_depth']
+best_depth = None if best_depth_str == 'None' else int(best_depth_str)
+
+# 2. min_samples_leaf
+for msl in min_samples_leaf:
+    tree = DecisionTreeRegressor(max_depth=best_depth, min_samples_leaf=msl, random_state=42)
+    tree.fit(R_X_train, R_y_train)
+    wyniki_msl.append({
+        'max_depth': str(best_depth), 'min_samples_leaf': msl,
+        'train_MSE': round(mse_score(tree, R_X_train, R_y_train), 4),
+        'test_MSE': round(mse_score(tree, R_X_test, R_y_test), 4)
+    })
+
+tree_r_df = pd.concat([
+    pd.DataFrame(wyniki_d),
+    pd.DataFrame(wyniki_msl)
+], ignore_index=True)
+tree_r_df.to_csv('Python/wyniki/Tree_Regression.csv', index=False)
+print(tree_r_df.to_string(index=False))
+
+
+# ------------------------------------------------------------
+# 3.4 LAS LOSOWY - REGRESJA
+# ------------------------------------------------------------
+print("\n--- REGRESJA: Las Losowy ---")
+
+n_estimators = [10, 50, 100, 200]
+max_depths = [3, 5, 10, None]
+
+wyniki_n, wyniki_d = [], []
+
+# 1. n_estimators
+for n_est in n_estimators:
+    rf = RandomForestRegressor(n_estimators=n_est, random_state=42, n_jobs=-1)
+    rf.fit(R_X_train, R_y_train)
+    wyniki_n.append({
+        'n_estimators': n_est, 'max_depth': '-',
+        'train_MSE': round(mse_score(rf, R_X_train, R_y_train), 4),
+        'test_MSE': round(mse_score(rf, R_X_test, R_y_test), 4)
+    })
+
+df_n = pd.DataFrame(wyniki_n)
+best_n = int(df_n.loc[df_n['test_MSE'].idxmin(), 'n_estimators'])
+
+# 2. max_depth
+for depth in max_depths:
+    rf = RandomForestRegressor(n_estimators=best_n, max_depth=depth,
+                               random_state=42, n_jobs=-1)
+    rf.fit(R_X_train, R_y_train)
+    wyniki_d.append({
+        'n_estimators': best_n, 'max_depth': str(depth),
+        'train_MSE': round(mse_score(rf, R_X_train, R_y_train), 4),
+        'test_MSE': round(mse_score(rf, R_X_test, R_y_test), 4)
+    })
+
+rf_r_df = pd.concat([
+    pd.DataFrame(wyniki_n),
+    pd.DataFrame(wyniki_d)
+], ignore_index=True)
+rf_r_df.to_csv('Python/wyniki/RF_Regression.csv', index=False)
+print(rf_r_df.to_string(index=False))
+
 
 print("\n" + "=" * 60)
 print("Zakończono analizę metod uczenia maszynowego.")
+print("Wyniki zapisano w folderze: Python/wyniki/")
 print("=" * 60)
