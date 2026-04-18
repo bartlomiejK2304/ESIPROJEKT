@@ -159,9 +159,6 @@ class NeuralNetwork:
                 print(f"Błąd mniejszy od docelowego na epoce {epoch}, {metric_name}: {loss}")
                 break
 
-            if epoch % 100 == 0:
-                print(f"Epoka {epoch}, {metric_name}: {loss}")
-
             prev_loss = loss
 
     # -------------------------------------------------

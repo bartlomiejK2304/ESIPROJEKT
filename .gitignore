@@ -12,3 +12,4 @@
 *.yaml
 *.yml
 .idea/
+__pycache__/

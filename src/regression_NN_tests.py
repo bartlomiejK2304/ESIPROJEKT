@@ -15,10 +15,10 @@ PARAM_GRID = {
         0.9
     ],
     "layers": [ # warstwy          #zmienione z 11 na 21
-        [21, 7, 1],
-        [21, 13, 1],
-        [21, 11, 1],
-        [21, 11, 4, 1]
+        [21, 5, 1],
+        [21, 24, 1],
+        [21, 21, 1],
+        [21, 21, 4, 1]
     ],
     "activation": [ # funkcja aktywacji
         'relu',
@@ -68,7 +68,7 @@ data = None # dane do wczytania
 
 # Wczytujemy dane i od razu dzielimy je na te do klasyfikacji i regresji.
 # Robimy to tutaj, żeby nie wczytywać pliku CSV setki razy w pętli.
-X_clf_all, y_clf_all, X_reg_all, y_reg_all = prepare_data("data/credit_risk_dataset.csv")
+X_clf_all, y_clf_all, X_reg_all, y_reg_all = prepare_data("../data/credit_risk_dataset.csv")
 # ==========================================
 
 # ==========================================
@@ -147,6 +147,8 @@ for task in ["regression", "classification"]:
     test_id = 0
     for param_name, values in PARAM_GRID.items():
         for value in values:
+            print(f"Test id: {test_id}, param: {param_name}, value: {value}")
+
             params = copy.deepcopy(default_params)
             params[param_name] = value
 
