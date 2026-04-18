@@ -112,17 +112,17 @@ for k in [3, 5, 7, 9]:
     print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
 
 # ------------------------------------------------------------------
-# KNN – PARAMETR 2: wagi sąsiadów (weights)
+# KNN – PARAMETR 2: metryka odległości (metric)
 # ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 2: wagi sąsiadów (weights)")
-print(f"  {'weights':<15} {'Train Acc':>12} {'Test Acc':>12}")
+print_param_header("KNN | PARAMETR 2: metryka odległości (metric)")
+print(f"  {'metric':<15} {'Train Acc':>12} {'Test Acc':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for w in ['uniform', 'distance']:
-    m = KNeighborsClassifier(n_neighbors=5, weights=w)
+for metr in ['euclidean', 'manhattan', 'chebyshev', 'minkowski']:
+    m = KNeighborsClassifier(n_neighbors=5, metric=metr)
     m.fit(X_train_clf_s, y_train_clf)
     tr = accuracy_score(y_train_clf, m.predict(X_train_clf_s))
     te = accuracy_score(y_test_clf, m.predict(X_test_clf_s))
-    print(f"  {w:<15} {tr:>12.4f} {te:>12.4f}")
+    print(f"  {metr:<15} {tr:>12.4f} {te:>12.4f}")
 
 # ------------------------------------------------------------------
 # SVM – PARAMETR 1: parametr regularyzacji C
@@ -225,17 +225,17 @@ for k in [3, 5, 7, 9]:
     print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
 
 # ------------------------------------------------------------------
-# KNN – PARAMETR 2: wagi sąsiadów (weights)
+# KNN – PARAMETR 2: metryka odległości (metric)
 # ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 2: wagi sąsiadów (weights)")
-print(f"  {'weights':<15} {'Train MSE':>12} {'Test MSE':>12}")
+print_param_header("KNN | PARAMETR 2: metryka odległości (metric)")
+print(f"  {'metric':<15} {'Train MSE':>12} {'Test MSE':>12}")
 print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for w in ['uniform', 'distance']:
-    m = KNeighborsRegressor(n_neighbors=5, weights=w)
+for metr in ['euclidean', 'manhattan', 'chebyshev', 'minkowski']:
+    m = KNeighborsRegressor(n_neighbors=5, metric=metr)
     m.fit(X_train_reg_s, y_train_reg)
     tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
     te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {w:<15} {tr:>12.4f} {te:>12.4f}")
+    print(f"  {metr:<15} {tr:>12.4f} {te:>12.4f}")
 
 # ------------------------------------------------------------------
 # SVR – PARAMETR 1: parametr regularyzacji C
@@ -290,7 +290,7 @@ for msl in [1, 5, 20, 50]:
     te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
     print(f"  {msl:<20} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
+# -----------------------------------------------------------------
 # LAS LOSOWY – PARAMETR 1: liczba drzew (n_estimators)
 # ------------------------------------------------------------------
 print_param_header("Las Losowy | PARAMETR 1: liczba drzew (n_estimators)")
