@@ -1,0 +1,13 @@
+scaler,C,kernel,train_MSE,test_MSE
+Standard,-,-,1.647,1.7694
+MinMax,-,-,1.6811,1.7541
+Robust,-,-,1.8816,2.0066
+None,-,-,9.2405,9.1251
+MinMax,0.1,-,1.9361,1.9226
+MinMax,1.0,-,1.6811,1.7541
+MinMax,10.0,-,1.6264,1.7677
+MinMax,100.0,-,1.5502,1.8214
+MinMax,1.0,linear,1.7064,1.7377
+MinMax,1.0,poly,1.6937,1.8117
+MinMax,1.0,rbf,1.6811,1.7541
+MinMax,1.0,sigmoid,35103.1814,34966.2888

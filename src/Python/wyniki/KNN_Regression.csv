@@ -1,0 +1,14 @@
+scaler,n_neighbors,weights,p,train_MSE,test_MSE
+Standard,-,-,-,1.3623,2.0676
+MinMax,-,-,-,1.3938,2.1321
+Robust,-,-,-,2.2114,3.4952
+None,-,-,-,6.8191,10.1971
+Standard,3,-,-,1.1353,2.2859
+Standard,5,-,-,1.3623,2.0676
+Standard,10,-,-,1.5505,1.9348
+Standard,20,-,-,1.6705,1.8823
+Standard,20,uniform,-,1.6705,1.8823
+Standard,20,distance,-,0.0004,1.8622
+Standard,20,distance,1,0.0004,1.8851
+Standard,20,distance,2,0.0004,1.8622
+Standard,20,distance,3,0.0004,1.8574
