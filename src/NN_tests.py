@@ -8,63 +8,57 @@ import time
 # ==========================================
 # Wartości parametrów do testowania (8 parametrów)
 
-# PARAM_GRID = {
-#     "division_coefficient": [ # proporcja podziału danych - treningowy/testowy
-#         0.6,
-#         0.7,
-#         0.8,
-#         0.9
-#     ],
-#     "layers": [ # warstwy          #zmienione z 11 na 21
-#         [21, 5, 1],
-#         [21, 24, 1],
-#         [21, 21, 1],
-#         [21, 21, 4, 1]
-#     ],
-#     "activation": [ # funkcja aktywacji
-#         'relu',
-#         'tanh',
-#         'sigmoid',
-#         'leaky_relu'
-#     ],
-#     "learning_rate": [ # współczynnik uczenia
-#         0.1,
-#         0.01,
-#         0.001,
-#         0.0001
-#     ],
-#     "multiplier": [ # mnożnik do przeskalowania wag
-#         0.1,
-#         0.01,
-#         0.001,
-#         0.0001
-#     ],
-#     "epochs": [ # liczba epok
-#         100,
-#         500,
-#         1000,
-#         2000
-#     ],
-#     "min_change": [ # minimalna zmiana błędu
-#         1e-2,
-#         1e-4,
-#         1e-6,
-#         1e-8
-#     ],
-#     "target_loss": [ # docelowa zmiana błędu
-#         1e-1,
-#         1e-2,
-#         1e-3,
-#         1e-4
-#     ]
-# }
+PARAM_GRID = {
+    "division_coefficient": [ # proporcja podziału danych - treningowy/testowy
+        0.6,
+        0.7,
+        0.8,
+        0.9
+    ],
+    "layers": [ # warstwy          #zmienione z 11 na 21
+        [21, 5, 1],
+        [21, 24, 1],
+        [21, 21, 1],
+        [21, 21, 4, 1]
+    ],
+    "activation": [ # funkcja aktywacji
+        'relu',
+        'tanh',
+        'sigmoid',
+        'leaky_relu'
+    ],
+    "learning_rate": [ # współczynnik uczenia
+        0.1,
+        0.01,
+        0.001,
+        0.0001
+    ],
+    "multiplier": [ # mnożnik do przeskalowania wag
+        0.1,
+        0.01,
+        0.001,
+        0.0001
+    ],
+    "epochs": [ # liczba epok
+        100,
+        500,
+        1000,
+        2000
+    ],
+    "min_change": [ # minimalna zmiana błędu
+        1e-2,
+        1e-4,
+        1e-6,
+        1e-8
+    ],
+    "target_loss": [ # docelowa zmiana błędu
+        1e-1,
+        1e-2,
+        1e-3,
+        1e-4
+    ]
+}
 
-PARAM_GRID = {"activation": [ # funkcja aktywacji
-         'relu',
-         'tanh',
-         'sigmoid',
-         'leaky_relu'
-     ]}
 
 # ==========================================
 # Wczytanie i przygotowanie danych
