@@ -1,4 +1,5 @@
 from neuralNetwork import NeuralNetwork
+from data_preparation import prepare_data, split_and_prepare_for_network
 import pandas as pd
 import numpy as np
 import copy
@@ -13,11 +14,11 @@ PARAM_GRID = {
         0.8,
         0.9
     ],
-    "layers": [ # warstwy
-        [11, 7, 1],
-        [11, 13, 1],
-        [11, 11, 1],
-        [11, 11, 4, 1]
+    "layers": [ # warstwy          #zmienione z 11 na 21
+        [21, 5, 1],
+        [21, 24, 1],
+        [21, 21, 1],
+        [21, 21, 4, 1]
     ],
     "activation": [ # funkcja aktywacji
         'relu',
@@ -63,10 +64,18 @@ PARAM_GRID = {
 data = None # dane do wczytania
 
 # ==========================================
+# Wczytanie i przygotowanie danych
+
+# Wczytujemy dane i od razu dzielimy je na te do klasyfikacji i regresji.
+# Robimy to tutaj, żeby nie wczytywać pliku CSV setki razy w pętli.
+X_clf_all, y_clf_all, X_reg_all, y_reg_all = prepare_data("../data/credit_risk_dataset.csv")
+# ==========================================
+
+# ==========================================
 # WARTOŚCI DOMYŚLNE (dla zachowania zasady ceteris paribus)
 
 default_params = {
-    "layers": [11, 11, 1],
+    "layers": [21, 11, 1],       # Zmienione z [11, 11, 1]
     "activation": "sigmoid",
     "learning_rate": 0.001,
     "multiplier": 0.01,
@@ -79,25 +88,21 @@ default_params = {
 # ==========================================
 # FUNKCJA TESTUJĄCA
 
-def run_experiment(data, params, test_id, task, rng_coef):
+def run_experiment(params, test_id, param_name, value, task, rng_coef):
     try:
         # -----------------------------------
-        # Podział danych na zbiór uczący i testowy
-        train_size = int(len(data) * params["division_coefficient"])
-
-        data_learn = data.iloc[:train_size]
-        data_test = data.iloc[train_size:]
+        # Podział danych na zbiór uczący i testowy ze standaryzacją
 
         if task == "regression":
-            X_learn = data_learn.drop(columns=["zmienna_objaśniana"])
-            y_learn = data_learn["zmienna_objaśniana"]
-            X_test = data_test.drop(columns=["zmienna_objaśniana"])
-            y_test = data_test["zmienna_objaśniana"]
+            X_learn, y_learn, X_test, y_test = split_and_prepare_for_network(
+                X_reg_all, y_reg_all, params["division_coefficient"]
+            )
+
+
         elif task == "classification":
-            X_learn = data_learn.drop(columns=["zmienna_objaśniana"])
-            y_learn = data_learn["zmienna_objaśniana"]
-            X_test = data_test.drop(columns=["zmienna_objaśniana"])
-            y_test = data_test["zmienna_objaśniana"]
+            X_learn,  y_learn, X_test, y_test = split_and_prepare_for_network(
+                X_clf_all, y_clf_all, params["division_coefficient"]
+            )
         else:
             raise ValueError(f"Unknown task: {task}")
 
@@ -142,13 +147,15 @@ for task in ["regression", "classification"]:
     test_id = 0
     for param_name, values in PARAM_GRID.items():
         for value in values:
+            print(f"Test id: {test_id}, param: {param_name}, value: {value}")
+
             params = copy.deepcopy(default_params)
             params[param_name] = value
 
             est_err = 0
             count = 0
             for rng_coef in [10, 20, 30, 40, 50]:
-                loss = run_experiment(data, params, test_id, task=task, rng_coef=rng_coef)
+                loss = run_experiment(params, test_id, param_name=param_name, value=value, task=task, rng_coef=rng_coef)
 
                 if loss is not None:
                     est_err += loss
