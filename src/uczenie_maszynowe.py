@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.metrics import accuracy_score, mean_squared_error,mean_absolute_error, r2_score
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -20,7 +20,7 @@ print("=" * 60)
 # ============================================================
 print("\nTrwa wczytywanie i przygotowywanie danych...")
 
-df = pd.read_csv('../data/credit_risk_dataset.csv')
+df = pd.read_csv('data/credit_risk_dataset.csv')
 
 # Usuwanie anomalii
 df = df[df['person_age'] < 100]
@@ -211,112 +211,112 @@ for depth in [3, 5, 10, None]:
 # ============================================================
 print_header("PROBLEM REGRESYJNY  |  Metryka: MSE (błąd średniokwadratowy)")
 
-# ------------------------------------------------------------------
-# KNN – PARAMETR 1: liczba sąsiadów (n_neighbors)
-# ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 1: liczba sąsiadów (n_neighbors)")
-print(f"  {'n_neighbors':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for k in [3, 5, 7, 9]:
-    m = KNeighborsRegressor(n_neighbors=k)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  k = {k:<11} {tr:>12.4f} {te:>12.4f}")
+wyniki.append({
+        'model': 'SVR',
+        'parametr': 'kernel',
+        'wartosc': kern,
+        'RMSE_train': np.sqrt(mean_squared_error(y_train_reg, y_tr)),
+        'RMSE_test': np.sqrt(mean_squared_error(y_test_reg, y_te)),
+        'MAE_train': mean_absolute_error(y_train_reg, y_tr),
+        'MAE_test': mean_absolute_error(y_test_reg, y_te),
+        'R2_train': r2_score(y_train_reg, y_tr),
+        'R2_test': r2_score(y_test_reg, y_te)
+    })
 
-# ------------------------------------------------------------------
-# KNN – PARAMETR 2: metryka odległości (metric)
-# ------------------------------------------------------------------
-print_param_header("KNN | PARAMETR 2: metryka odległości (metric)")
-print(f"  {'metric':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for metr in ['euclidean', 'manhattan', 'chebyshev', 'minkowski']:
-    m = KNeighborsRegressor(n_neighbors=5, metric=metr)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {metr:<15} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# SVR – PARAMETR 1: parametr regularyzacji C
-# ------------------------------------------------------------------
-print_param_header("SVR | PARAMETR 1: parametr regularyzacji (C)")
-print(f"  {'C':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for c in [0.1, 1.0, 10.0, 100.0]:
-    m = SVR(C=c, kernel='rbf')
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  C = {c:<11} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# SVR – PARAMETR 2: rodzaj jądra (kernel)
-# ------------------------------------------------------------------
-print_param_header("SVR | PARAMETR 2: rodzaj jądra (kernel)")
-print(f"  {'kernel':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for kern in ['linear', 'poly', 'rbf', 'sigmoid']:
-    m = SVR(C=1.0, kernel=kern)
-    m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {kern:<15} {tr:>12.4f} {te:>12.4f}")
-
-# ------------------------------------------------------------------
-# DRZEWO – PARAMETR 1: maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("Drzewo Decyzyjne | PARAMETR 1: maksymalna głębokość (max_depth)")
-print(f"  {'max_depth':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
+# ============================================================
+# Decision Tree - max_depth
+# ============================================================
 for depth in [3, 5, 10, None]:
     m = DecisionTreeRegressor(max_depth=depth, random_state=42)
     m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    label = str(depth) if depth is not None else 'None (brak)'
-    print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
-# DRZEWO – PARAMETR 2: min. liczba obserwacji w liściu (min_samples_leaf)
-# ------------------------------------------------------------------
-print_param_header("Drzewo Decyzyjne | PARAMETR 2: min. liczba obserwacji w liściu (min_samples_leaf)")
-print(f"  {'min_samples_leaf':<20} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*20} {'-'*12} {'-'*12}")
+    y_tr = m.predict(X_train_reg_s)
+    y_te = m.predict(X_test_reg_s)
+
+wyniki.append({
+        'model': 'Decision Tree',
+        'parametr': 'max_depth',
+        'wartosc': str(depth),
+        'RMSE_train': np.sqrt(mean_squared_error(y_train_reg, y_tr)),
+        'RMSE_test': np.sqrt(mean_squared_error(y_test_reg, y_te)),
+        'MAE_train': mean_absolute_error(y_train_reg, y_tr),
+        'MAE_test': mean_absolute_error(y_test_reg, y_te),
+        'R2_train': r2_score(y_train_reg, y_tr),
+        'R2_test': r2_score(y_test_reg, y_te)
+    })
+
+# ============================================================
+# Decision Tree - min_samples_leaf
+# ============================================================
 for msl in [1, 5, 20, 50]:
     m = DecisionTreeRegressor(min_samples_leaf=msl, random_state=42)
     m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {msl:<20} {tr:>12.4f} {te:>12.4f}")
 
-# -----------------------------------------------------------------
-# LAS LOSOWY – PARAMETR 1: liczba drzew (n_estimators)
-# ------------------------------------------------------------------
-print_param_header("Las Losowy | PARAMETR 1: liczba drzew (n_estimators)")
-print(f"  {'n_estimators':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
-for n_est in [10, 50, 100, 200]:
-    m = RandomForestRegressor(n_estimators=n_est, random_state=42, n_jobs=-1)
+    y_tr = m.predict(X_train_reg_s)
+    y_te = m.predict(X_test_reg_s)
+
+    wyniki.append({
+        'model': 'Decision Tree',
+        'parametr': 'min_samples_leaf',
+        'wartosc': msl,
+        'RMSE_train': np.sqrt(mean_squared_error(y_train_reg, y_tr)),
+        'RMSE_test': np.sqrt(mean_squared_error(y_test_reg, y_te)),
+        'MAE_train': mean_absolute_error(y_train_reg, y_tr),
+        'MAE_test': mean_absolute_error(y_test_reg, y_te),
+        'R2_train': r2_score(y_train_reg, y_tr),
+        'R2_test': r2_score(y_test_reg, y_te)
+    })
+
+# ============================================================
+# Random Forest - n_estimators
+# ============================================================
+for n in [10, 50, 100, 200]:
+    m = RandomForestRegressor(n_estimators=n, random_state=42, n_jobs=-1)
     m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    print(f"  {n_est:<15} {tr:>12.4f} {te:>12.4f}")
 
-# ------------------------------------------------------------------
-# LAS LOSOWY – PARAMETR 2: maksymalna głębokość (max_depth)
-# ------------------------------------------------------------------
-print_param_header("Las Losowy | PARAMETR 2: maksymalna głębokość drzew (max_depth)")
-print(f"  {'max_depth':<15} {'Train MSE':>12} {'Test MSE':>12}")
-print(f"  {'-'*15} {'-'*12} {'-'*12}")
+    y_tr = m.predict(X_train_reg_s)
+    y_te = m.predict(X_test_reg_s)
+
+    wyniki.append({
+        'model': 'Random Forest',
+        'parametr': 'n_estimators',
+        'wartosc': n,
+        'RMSE_train': np.sqrt(mean_squared_error(y_train_reg, y_tr)),
+        'RMSE_test': np.sqrt(mean_squared_error(y_test_reg, y_te)),
+        'MAE_train': mean_absolute_error(y_train_reg, y_tr),
+        'MAE_test': mean_absolute_error(y_test_reg, y_te),
+        'R2_train': r2_score(y_train_reg, y_tr),
+        'R2_test': r2_score(y_test_reg, y_te)
+    })
+
+# ============================================================
+# Random Forest - max_depth
+# ============================================================
 for depth in [3, 5, 10, None]:
-    m = RandomForestRegressor(n_estimators=100, max_depth=depth,
-                              random_state=42, n_jobs=-1)
+    m = RandomForestRegressor(n_estimators=100, max_depth=depth, random_state=42, n_jobs=-1)
     m.fit(X_train_reg_s, y_train_reg)
-    tr = mean_squared_error(y_train_reg, m.predict(X_train_reg_s))
-    te = mean_squared_error(y_test_reg, m.predict(X_test_reg_s))
-    label = str(depth) if depth is not None else 'None (brak)'
-    print(f"  {label:<15} {tr:>12.4f} {te:>12.4f}")
+
+    y_tr = m.predict(X_train_reg_s)
+    y_te = m.predict(X_test_reg_s)
+
+    wyniki.append({
+        'model': 'Random Forest',
+        'parametr': 'max_depth',
+        'wartosc': str(depth),
+        'RMSE_train': np.sqrt(mean_squared_error(y_train_reg, y_tr)),
+        'RMSE_test': np.sqrt(mean_squared_error(y_test_reg, y_te)),
+        'MAE_train': mean_absolute_error(y_train_reg, y_tr),
+        'MAE_test': mean_absolute_error(y_test_reg, y_te),
+        'R2_train': r2_score(y_train_reg, y_tr),
+        'R2_test': r2_score(y_test_reg, y_te)
+    })
+
+# ============================================================
+# ZAPIS DO EXCELA
+# ============================================================
+df_wyniki = pd.DataFrame(wyniki)
+df_wyniki.to_excel('wyniki_regresja.xlsx', index=False)
+
 
 print("\n" + "=" * 60)
 print("Zakończono analizę metod uczenia maszynowego.")
