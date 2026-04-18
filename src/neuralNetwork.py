@@ -34,7 +34,7 @@ class NeuralNetwork:
         # inicjalizacja wag
         for i in range(len(layers) - 1): # bo warstwa wyjściowa nie łączy się już z żadną
             rnd = np.random.default_rng(rng_coef) # dla powtarzalności wyników
-            w = rnd.normal(layers[i], layers[i + 1]) * multiplier # losujemy wagi dla danej warstwy
+            w = rnd.normal(0, 1, (layers[i], layers[i + 1])) * multiplier # losujemy wagi dla danej warstwy
             b = np.zeros((1, layers[i + 1])) # ustawiamy biasy
 
             self.weights.append(w)
@@ -51,8 +51,8 @@ class NeuralNetwork:
             self.activation = tanh
             self.activation_derivative = tanh_derivative
         elif activation == 'leaky_relu':
-            self.activation = linear
-            self.activation_derivative = linear_derivative
+            self.activation = leaky_relu
+            self.activation_derivative = leaky_relu_derivative
 
 
     # -------------------------------------------------
@@ -158,9 +158,6 @@ class NeuralNetwork:
             if loss < target_loss:
                 print(f"Błąd mniejszy od docelowego na epoce {epoch}, {metric_name}: {loss}")
                 break
-
-            if epoch % 100 == 0:
-                print(f"Epoka {epoch}, {metric_name}: {loss}")
 
             prev_loss = loss
 
