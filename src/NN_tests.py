@@ -61,11 +61,6 @@ PARAM_GRID = {
 # ==========================================
 # Wczytanie i przygotowanie danych
 
-data = None # dane do wczytania
-
-# ==========================================
-# Wczytanie i przygotowanie danych
-
 # Wczytujemy dane i od razu dzielimy je na te do klasyfikacji i regresji.
 # Robimy to tutaj, żeby nie wczytywać pliku CSV setki razy w pętli.
 X_clf_all, y_clf_all, X_reg_all, y_reg_all = prepare_data("../data/credit_risk_dataset.csv")
