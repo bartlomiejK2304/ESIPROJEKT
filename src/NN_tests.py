@@ -15,7 +15,7 @@ PARAM_GRID = {
         0.8,
         0.9
     ],
-    "layers": [ # warstwy          #zmienione z 11 na 21
+    "layers": [ # warstwy
         [21, 5, 1],
         [21, 24, 1],
         [21, 21, 1],
@@ -63,16 +63,13 @@ PARAM_GRID = {
 # ==========================================
 # Wczytanie i przygotowanie danych
 
-# Wczytujemy dane i od razu dzielimy je na te do klasyfikacji i regresji.
-# Robimy to tutaj, żeby nie wczytywać pliku CSV setki razy w pętli.
 X_clf_all, y_clf_all, X_reg_all, y_reg_all = prepare_data("../data/credit_risk_dataset.csv")
-# ==========================================
 
 # ==========================================
 # WARTOŚCI DOMYŚLNE (dla zachowania zasady ceteris paribus)
 
 default_params = {
-    "layers": [21, 11, 1],       # Zmienione z [11, 11, 1]
+    "layers": [21, 11, 1],
     "activation": "sigmoid",
     "learning_rate": 0.001,
     "multiplier": 0.01,

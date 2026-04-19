@@ -20,7 +20,7 @@ def linear(x): return x
 def linear_derivative(x): return np.ones_like(x)
 
 # ==============================================
-# Klasa Regresyjnej Sieci neuronowej
+# Klasa Sieci neuronowej
 
 class NeuralNetwork:
     def __init__(self, layers: list[int], activation, learning_rate=0.001, multiplier=0.01, task="regression", rng_coef=10):
