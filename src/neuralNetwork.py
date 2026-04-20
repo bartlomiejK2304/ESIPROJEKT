@@ -13,7 +13,7 @@ def leaky_relu_derivative(x): return np.where(x > 0, 1, 0.01)
 def sigmoid(x): return 1 / (1 + np.exp(-x))
 def sigmoid_derivative(x): return sigmoid(x) * (1 - sigmoid(x))
 
-def tanh(x): return np.tanh(x)
+def tanh(x): return np.tanh(x) # kształtem podobny do sigmoidy; symetryczny względem 0
 def tanh_derivative(x): return 1 - np.tanh(x)**2
 
 def linear(x): return x
@@ -29,7 +29,7 @@ class NeuralNetwork:
         self.learning_rate = learning_rate # współczynnik uczenia
 
         self.weights = [] # wagi
-        self.biases = [] # biasy
+        self.biases = [] # biasy ("wyrazy wolne")
 
         # inicjalizacja wag
         for i in range(len(layers) - 1): # bo warstwa wyjściowa nie łączy się już z żadną
@@ -63,8 +63,7 @@ class NeuralNetwork:
         Forward pass - przetwarza dane wejściowe, warstwa po warstwie,
         aby wygenerować wyjście
 
-        :param self: aktualna instancja klasy NeuralNetwork
-        :param X: tablica danych wejściowych dla sieci neuronowej
+        :param X: tablica danych wejściowych
         :return: tablica wartości wyjściowych
         """
         # lista tablic wartości wyjściowych po zastosowaniu funkcji aktywacji
@@ -119,6 +118,7 @@ class NeuralNetwork:
         m = y_true.shape[0]
 
         if self.task == "regression":
+            # pochodna po MSE (pominięcie dwójki w liczniku)
             dz = (y_pred - y_true) / m # gradient błędu w ostatniej warstwie
         elif self.task == "classification":
             dz = y_pred - y_true

@@ -46,8 +46,8 @@ def split_and_prepare_for_network(X, y, division_coefficient):
     return X_learn, y_learn, X_test, y_test
 
 if __name__ == "__main__":
-    X_clf, y_clf, X_reg, y_reg = prepare_data("data/credit_risk_dataset.csv")
-    
+    X_clf, y_clf, X_reg, y_reg = prepare_data("../data/credit_risk_dataset.csv")
+
     print("--- TEST WCZYTYWANIA DANYCH ---")
     print(f"Liczba cech (kolumn X): {X_clf.shape[1]}")
     print("-------------------------------")
